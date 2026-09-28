@@ -1,0 +1,37 @@
+name: Site health (HTTPS certificate)
+
+# Checks once a day that https://www.ben-cobb.com/mmu-json-parser/ answers 200
+# over HTTPS with a certificate that covers the host name and is not within
+# 14 days of expiry. GitHub renews the Let's Encrypt certificate for
+# www.ben-cobb.com by itself; this job only makes a missed renewal visible
+# before the certificate actually expires. A failed run e-mails the person who
+# last changed the schedule line in this file (subject to their GitHub
+# notification settings).
+#
+# GitHub pauses scheduled workflows in a public repository after 60 days
+# without a commit, after sending a warning e-mail. Re-enable it from the
+# Actions tab, or push any commit.
+
+on:
+  schedule:
+    - cron: "23 14 * * *" # daily at 14:23 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check the deployed site and its certificate
+        run: |
+          rc=0
+          {
+            echo '```'
+            bash scripts/check-site-health.sh "https://www.ben-cobb.com/mmu-json-parser/" || rc=$?
+            echo '```'
+            exit "$rc"
+          } | tee -a "$GITHUB_STEP_SUMMARY"
