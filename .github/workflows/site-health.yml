@@ -1,21 +1,35 @@
 name: Site health (HTTPS certificate)
 
 # Checks once a day that https://www.ben-cobb.com/mmu-json-parser/ answers 200
-# over HTTPS with a certificate that covers the host name and is not within
-# 14 days of expiry. GitHub renews the Let's Encrypt certificate for
-# www.ben-cobb.com by itself; this job only makes a missed renewal visible
-# before the certificate actually expires. A failed run e-mails the person who
-# last changed the schedule line in this file (subject to their GitHub
-# notification settings).
+# over HTTPS, that its certificate covers the host name and is not within 14
+# days of expiry, and that DNS sends www.ben-cobb.com to GitHub Pages and
+# nowhere else. GitHub renews the Let's Encrypt certificate by itself; this job
+# makes a missed renewal visible before the certificate expires.
+#
+# Who is told: a failed scheduled run e-mails the person who last changed the
+# cron line below, a failed manual run e-mails the person who started it. Both
+# depend on that person's settings under github.com/settings/notifications.
+#
+# Testing the alarm: start the workflow by hand with min_days set to 400. No
+# certificate is valid that long, so the run must turn red.
 #
 # GitHub pauses scheduled workflows in a public repository after 60 days
-# without a commit, after sending a warning e-mail. Re-enable it from the
-# Actions tab, or push any commit.
+# without repository activity, after sending a warning e-mail. Re-enable it
+# from the Actions tab.
 
 on:
   schedule:
     - cron: "23 14 * * *" # daily at 14:23 UTC
   workflow_dispatch:
+    inputs:
+      min_days:
+        description: "Fail if the certificate expires within this many days (400 tests the alarm)"
+        type: string
+        default: "14"
+  pull_request:
+    paths:
+      - scripts/check-site-health.sh
+      - .github/workflows/site-health.yml
 
 permissions:
   contents: read
@@ -23,15 +37,21 @@ permissions:
 jobs:
   check:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
-      - name: Check the deployed site and its certificate
+      - name: Check the deployed site, its certificate and its DNS
+        shell: bash
+        env:
+          MIN_DAYS: ${{ inputs.min_days || '14' }}
         run: |
+          # The report goes to a file first, so the status of this step is the
+          # exit status of the script and never that of a pipeline.
           rc=0
-          {
-            echo '```'
-            bash scripts/check-site-health.sh "https://www.ben-cobb.com/mmu-json-parser/" || rc=$?
-            echo '```'
-            exit "$rc"
-          } | tee -a "$GITHUB_STEP_SUMMARY"
+          bash scripts/check-site-health.sh >"$RUNNER_TEMP/report.txt" 2>&1 || rc=$?
+          cat "$RUNNER_TEMP/report.txt"
+          { echo '```'; cat "$RUNNER_TEMP/report.txt"; echo '```'; } >>"$GITHUB_STEP_SUMMARY"
+          exit "$rc"
