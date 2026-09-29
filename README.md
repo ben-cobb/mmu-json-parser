@@ -60,8 +60,8 @@ since March 2026. The extra records are the most likely cause and the only fault
 GitHub does not say why a renewal fails.
 
 Namecheap never lists 162.255.119.104 in Advanced DNS. It exists for as long as a URL
-redirect exists for the host, under Domain > Redirect Domain or as a URL Redirect
-Record.
+Redirect Record exists for the host. The Host Records list shows only its first five
+rows; the two redirect records sat below them, behind "Show more".
 
 ### Expected DNS records (Namecheap, Advanced DNS)
 
@@ -78,17 +78,22 @@ in front. A CAA record, if one is ever added, must allow `letsencrypt.org`.
 ### Steps
 
 1. Run `bash scripts/check-site-health.sh`. Section 4 names any DNS fault.
-2. Fix DNS first, at Namecheap. Delete extra records in place; do not delete and
-   re-create the `www` CNAME. A change takes up to 30 minutes to reach every resolver.
+2. Fix DNS first, at Namecheap. Click "Show more" under Host Records to see every
+   row. Delete extra records in place; do not delete and re-create the `www` CNAME. A
+   change takes up to 30 minutes to reach every resolver.
 3. Check GitHub's own view with
    `gh api repos/ben-cobb/ben-cobb.github.io/pages/health`. Both hosts should report
    `is_https_eligible: true`.
 4. Open https://github.com/ben-cobb/ben-cobb.github.io/settings/pages, remove the custom
    domain, save, add `www.ben-cobb.com` back, save. Do this once and allow an hour;
    repeating it restarts the request.
-5. When the certificate is issued, tick "Enforce HTTPS" there and in this repository's
+5. Keep that settings page open, or reload it. Loading it is what makes GitHub run the
+   DNS check and request the certificate: in September 2026 the request sat untouched
+   after the domain was re-added through the API, and completed within a minute of
+   the page being opened.
+6. When the certificate is issued, tick "Enforce HTTPS" there and in this repository's
    Pages settings.
-6. No certificate after an hour: remove the custom domain and use
+7. No certificate after an hour: remove the custom domain and use
    https://ben-cobb.github.io/mmu-json-parser/, which has GitHub's own certificate.
    Contact GitHub Support and add the domain back later.
 
