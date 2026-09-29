@@ -30,7 +30,7 @@ and nowhere else.
   certificate is valid that long, so the run must turn red and the e-mail must arrive.
 - GitHub pauses scheduled workflows in a public repository after 60 days without
   repository activity. It warns by e-mail first; re-enable the workflow from the
-  Actions tab.
+  Actions tab. Act on that e-mail: a paused check cannot report a missed renewal.
 - Let's Encrypt shortens certificate lifetimes to 64 days in February 2027 and to 45
   days in February 2028. If the check then fails although renewals still arrive, lower
   `MIN_DAYS` in the workflow.
@@ -62,6 +62,9 @@ GitHub does not say why a renewal fails.
 Namecheap never lists 162.255.119.104 in Advanced DNS. It exists for as long as a URL
 Redirect Record exists for the host. The Host Records list shows only its first five
 rows; the two redirect records sat below them, behind "Show more".
+
+The full record, with the timeline, every change made and what to watch for next, is
+in [docs/incidents/2026-09-certificate-outage.md](docs/incidents/2026-09-certificate-outage.md).
 
 ### Expected DNS records (Namecheap, Advanced DNS)
 
