@@ -1,0 +1,66 @@
+name: Deploy to GitHub Pages
+
+# Builds the app and publishes the build/ folder to the gh-pages branch, which
+# GitHub Pages serves at https://www.ben-cobb.com/mmu-json-parser/. It runs on
+# every push to main and can be started by hand from the Actions tab. It is the
+# automated form of `npm run deploy`, which still works from a developer's
+# machine as a fallback and does the same thing.
+#
+# The push uses the workflow's own GITHUB_TOKEN, so no secret has to be
+# configured. Pages keeps reading from the gh-pages branch; nothing in the
+# repository's Pages settings changes. When the build is identical to what is
+# already published, gh-pages makes no commit and the run still succeeds.
+#
+# A failed test or build stops the deploy and the site stays as it was. GitHub
+# e-mails the author of the push about the failed run.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# One deploy at a time. A push that lands while a deploy is running waits for
+# it instead of racing it to the gh-pages branch.
+concurrency:
+  group: deploy-gh-pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write # push to the gh-pages branch
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test -- --watchAll=false
+
+      - name: Build
+        run: npm run build
+
+      - name: Publish build/ to the gh-pages branch
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # gh-pages cannot parse "[bot]" in its --user flag, so the author is
+          # set through git's own environment variables instead.
+          GIT_AUTHOR_NAME: github-actions[bot]
+          GIT_AUTHOR_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
+          GIT_COMMITTER_NAME: github-actions[bot]
+          GIT_COMMITTER_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
+        run: |
+          subject=$(git log -1 --format=%s)
+          npx gh-pages --dist build --branch gh-pages --silent \
+            --repo "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" \
+            --message "Deploy ${GITHUB_SHA::7}: ${subject}"

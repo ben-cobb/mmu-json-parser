@@ -4,8 +4,17 @@ This project was created to simplify a workflow for other coworkers.
 
 ## Where it runs
 
-- The app is built with Create React App. `npm run deploy` builds it and pushes the
-  `build/` folder to the `gh-pages` branch, which GitHub Pages publishes.
+- The app is built with Create React App. GitHub Pages publishes the `gh-pages`
+  branch, which holds only build output. The source lives on `main`.
+- Every push to `main` deploys. `.github/workflows/deploy.yml` installs dependencies,
+  runs the tests, builds the app and pushes the `build/` folder to `gh-pages` with the
+  workflow's own token. The site updates a minute or two after the run finishes. When
+  the build is identical to what is already published, no commit is made.
+- A failed test or build stops the deploy and the site stays as it was. GitHub e-mails
+  the author of the push; the Actions tab has the log.
+- To redeploy without a code change, start the "Deploy to GitHub Pages" workflow by
+  hand from the Actions tab. `npm run deploy` still works from a developer's machine
+  as a fallback and does the same thing.
 - It is served at https://www.ben-cobb.com/mmu-json-parser/ and at
   https://ben-cobb.github.io/mmu-json-parser/. The second address redirects to the
   first while the custom domain is attached.
@@ -15,6 +24,19 @@ This project was created to simplify a workflow for other coworkers.
   90 days and GitHub renews it on its own, about 30 days before it expires, for as long
   as the domain's DNS keeps passing GitHub's check. Redeploying this app has no effect
   on the certificate.
+
+## Making a change
+
+1. Edit the source: the screen is `src/App.js`, the display component is in
+   `src/components/`, and the Excel parsing logic is in `src/utils/`. Static files such
+   as the favicon are in `public/`.
+2. Check it locally with `npm start`, and run `npm test` if you touched the parsing.
+3. Open a pull request against `main`, or push to `main` directly. The merge is the
+   deploy; nothing else needs to be run.
+
+Do not change the `homepage` field in `package.json`: it sets the `/mmu-json-parser/`
+path the built site expects. `.gitignore` ignores every `*.json` file, so a new JSON
+file is not committed unless it is force-added.
 
 ## Health check
 
