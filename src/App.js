@@ -600,7 +600,6 @@ if (gridFlag) {
       >
         <div>
           <h1 className="text-xl font-semibold">MMU Parser</h1>
-          <span className="font-semibold text-xs">by Chris Stewart</span>
         </div>
         <div className="flex items-center">
           {jobNumber && (
